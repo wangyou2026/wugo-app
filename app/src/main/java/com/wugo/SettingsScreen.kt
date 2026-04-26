@@ -64,7 +64,7 @@ fun SettingsScreen(navController: NavController) {
         // 每日目标
         Row(modifier = Modifier.fillMaxWidth()) {
             Text("每日目标题目数", modifier = Modifier.weight(1f))
-            Text("$dailyGoal题", color = MaterialTheme.colorScheme.primary)
+            Text("${dailyGoal}题", color = MaterialTheme.colorScheme.primary)
         }
         
         Spacer(modifier = Modifier.height(8.dp))
