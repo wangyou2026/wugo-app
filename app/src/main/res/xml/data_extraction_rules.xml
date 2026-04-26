@@ -1,0 +1,6 @@
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="ocr_config.xml"/>
+        <exclude domain="sharedpref" path="kata_go_config.xml"/>
+    </cloud-backup>
+</data-extraction-rules>

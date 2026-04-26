@@ -1,0 +1,5 @@
+<full-backup-content>
+    <include domain="file" path="sgf_problems"/>
+    <include domain="sharedpref" path="wugo_user_progress.xml"/>
+    <include domain="database" path="wugo-database"/>
+</full-backup-content>
