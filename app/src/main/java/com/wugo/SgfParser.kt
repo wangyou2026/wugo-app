@@ -16,7 +16,9 @@ class SgfParser {
             var title = "未知题目"
             var explanation = ""
 
-            for (line in content.split("\n")) {
+            // 按行解析，支持 GBK/UTF-8 混合
+            val lines = content.split("\n", "\r\n")
+            for (line in lines) {
                 when {
                     line.contains("AB[") -> parseBlackStones(line, stones)
                     line.contains("AW[") -> parseWhiteStones(line, stones)
@@ -40,7 +42,7 @@ class SgfParser {
         }
 
         private fun parseBlackStones(line: String, stones: MutableMap<String, Stone>) {
-            val stonePattern = Regex("AB\\[(..?)\\]")
+            val stonePattern = Regex("AB\\[([^\\]]+)\\]")
             stonePattern.findAll(line).forEach { match ->
                 val coord = match.groupValues[1]
                 if (coord.length >= 2) {
@@ -53,7 +55,7 @@ class SgfParser {
         }
 
         private fun parseWhiteStones(line: String, stones: MutableMap<String, Stone>) {
-            val stonePattern = Regex("AW\\[(..?)\\]")
+            val stonePattern = Regex("AW\\[([^\\]]+)\\]")
             stonePattern.findAll(line).forEach { match ->
                 val coord = match.groupValues[1]
                 if (coord.length >= 2) {
@@ -91,7 +93,7 @@ class SgfParser {
 
         private fun parseSolutionSteps(content: String): List<SolutionStep> {
             val steps = mutableListOf<SolutionStep>()
-            val pattern = Regex("[;](B|W)\\[([a-s]{2})\\]")
+            val pattern = Regex(";([BW])\\[([a-s]{2})\\]")
             pattern.findAll(content).forEach { match ->
                 val color = if (match.groupValues[1] == "B") StoneColor.BLACK else StoneColor.WHITE
                 val coord = match.groupValues[2]
@@ -105,24 +107,42 @@ class SgfParser {
             return steps
         }
 
+        /**
+         * 递归扫描 assets/sgf_problems/ 下所有子目录的 .sgf 文件
+         */
         fun loadProblemsFromAssets(context: Context): List<Problem> {
             val problems = mutableListOf<Problem>()
+            loadProblemsFromDir(context, "sgf_problems", problems)
+            Log.i("SgfParser", "共加载 ${problems.size} 道题目")
+            return problems
+        }
+
+        private fun loadProblemsFromDir(context: Context, dirPath: String, problems: MutableList<Problem>) {
             try {
-                val assets = context.assets.list("sgf_problems") ?: return problems
-                assets.filter { it.endsWith(".sgf") }.forEach { filename ->
+                val assetManager = context.assets
+                val files = assetManager.list(dirPath) ?: return
+
+                for (filename in files) {
+                    val fullPath = "$dirPath/$filename"
                     try {
-                        context.assets.open("sgf_problems/$filename").use { stream ->
-                            val content = BufferedReader(InputStreamReader(stream)).readText()
-                            problems.add(parseSgfContent(content))
+                        val subFiles = assetManager.list(fullPath)
+                        if (subFiles != null && subFiles.isNotEmpty()) {
+                            // 是子目录，递归进入
+                            loadProblemsFromDir(context, fullPath, problems)
+                        } else if (filename.endsWith(".sgf", ignoreCase = true)) {
+                            // 是 SGF 文件，解析
+                            assetManager.open(fullPath).use { stream ->
+                                val content = BufferedReader(InputStreamReader(stream)).readText()
+                                problems.add(parseSgfContent(content))
+                            }
                         }
                     } catch (e: Exception) {
-                        Log.w("SgfParser", "解析 $filename 失败: ${e.message}")
+                        Log.w("SgfParser", "读取 $fullPath 失败: ${e.message}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e("SgfParser", "加载题库失败: ${e.message}")
+                Log.e("SgfParser", "扫描目录 $dirPath 失败: ${e.message}")
             }
-            return problems
         }
     }
 }
